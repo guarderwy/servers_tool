@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific - user data
+server_monitor/config.json
+server_monitor/credentials.enc
+
+# OS
+Thumbs.db
+.DS_Store
+
+# PyInstaller
+*.spec
