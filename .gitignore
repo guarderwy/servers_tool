@@ -8,6 +8,7 @@ build/
 *.egg
 venv/
 .venv/
+plan/
 
 # IDE
 .idea/
@@ -22,6 +23,3 @@ server_monitor/credentials.enc
 # OS
 Thumbs.db
 .DS_Store
-
-# PyInstaller
-*.spec
