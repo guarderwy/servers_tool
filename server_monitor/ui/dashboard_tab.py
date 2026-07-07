@@ -23,6 +23,7 @@ class DashboardTab(QWidget):
         self._state = state_manager
         self._scheduler = scheduler
         self._mode = "card"  # card | list
+        self._theme = "dark"
         self._cards: dict[str, ServerCard] = {}
         self._last_update_time = None
         self._batch_mode = False
@@ -33,9 +34,8 @@ class DashboardTab(QWidget):
 
         # 标题栏
         header = QHBoxLayout()
-        title = QLabel("<b>服务器总览</b>")
-        title.setStyleSheet("font-size: 16px; color: #ffffff;")
-        header.addWidget(title)
+        self._title_label = QLabel("<b>服务器总览</b>")
+        header.addWidget(self._title_label)
         header.addStretch()
 
         self._switch_btn = QPushButton("切换列表视图")
@@ -47,15 +47,12 @@ class DashboardTab(QWidget):
         # 统计栏
         stats_row = QHBoxLayout()
         self._online_label = QLabel("在线: 0/0")
-        self._online_label.setStyleSheet("color: #2ecc71; font-size: 13px;")
         stats_row.addWidget(self._online_label)
 
         self._alert_label = QLabel("告警: 0")
-        self._alert_label.setStyleSheet("color: #f39c12; font-size: 13px;")
         stats_row.addWidget(self._alert_label)
 
         self._update_label = QLabel("最后更新: --")
-        self._update_label.setStyleSheet("color: #888; font-size: 12px;")
         stats_row.addWidget(self._update_label)
         stats_row.addStretch()
         layout.addLayout(stats_row)
@@ -98,7 +95,7 @@ class DashboardTab(QWidget):
         # 更新或创建卡片
         card = self._cards.get(snapshot.server_id)
         if not card:
-            card = ServerCard()
+            card = ServerCard(theme=self._theme)
             self._cards[snapshot.server_id] = card
             # 连接监控切换信号 → 调度器
             if self._scheduler:
@@ -117,6 +114,23 @@ class DashboardTab(QWidget):
 
         # 更新统计
         self._update_stats()
+
+    def apply_theme(self, theme: str):
+        """切换仪表盘所有视觉元素到指定主题"""
+        self._theme = theme
+        # 标题栏
+        fg = "#ffffff" if theme == "dark" else "#222222"
+        self._title_label.setStyleSheet(f"font-size: 16px; color: {fg};")
+        # 更新所有已有卡片
+        for card in self._cards.values():
+            card.set_card_theme(theme)
+        # 统计栏文字颜色（暗色下不变，亮色下加深）
+        online_fg = "#2ecc71"
+        alert_fg = "#f39c12"
+        update_fg = "#888888" if theme == "dark" else "#666666"
+        self._online_label.setStyleSheet(f"color: {online_fg}; font-size: 13px;")
+        self._alert_label.setStyleSheet(f"color: {alert_fg}; font-size: 13px;")
+        self._update_label.setStyleSheet(f"color: {update_fg}; font-size: 12px;")
 
     def _rebuild_grid(self):
         """重建卡片网格"""

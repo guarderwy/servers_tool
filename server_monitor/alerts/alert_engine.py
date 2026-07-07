@@ -41,6 +41,7 @@ class AlertEngine:
 
     def set_rules(self, rules: list[AlertRule]):
         self._rules = rules
+        self._reconcile_active_alerts()
 
     def to_dict_list(self) -> list[dict]:
         """导出规则为可序列化的字典列表"""
@@ -51,6 +52,52 @@ class AlertEngine:
         self._rules = [AlertRule.from_dict(d) for d in rules_data]
         self._counters.clear()
         self._recovery_counters.clear()
+        self._reconcile_active_alerts()
+
+    def _reconcile_active_alerts(self):
+        """规则变化后，清理已不再适用的活跃告警。
+
+        触发场景：
+        - 规则被禁用 / 删除 → 没有任何启用的同类规则，旧告警失去依据；
+        - 阈值/条件被修改 → 按新规则，已记录的值已不再越界。
+
+        解析出的告警会发出 alert_resolved 信号，驱动 UI 从面板与状态栏清除。
+        """
+        enabled_pairs = {(r.metric, r.level) for r in self._rules if r.enabled}
+        for alert in self._history.get_active():
+            rule = next(
+                (r for r in self._rules if r.enabled
+                 and r.metric == alert.metric
+                 and r.level == alert.level.value),
+                None,
+            )
+            should_resolve = False
+            if rule is None:
+                # 规则被删除或禁用
+                should_resolve = True
+            elif alert.current_value is not None and not rule.matches(
+                alert.current_value
+            ):
+                # 规则仍在，但按新阈值当前值已不再越界
+                should_resolve = True
+
+            if should_resolve:
+                resolved = self._history.resolve_by_rule(
+                    alert.server_id, alert.metric, alert.level.value
+                )
+                for rec in resolved:
+                    self._notifier.send_resolved(rec)
+                    logger.info("ALERT RESOLVED (rule changed): %s", rec.message)
+
+        # 清理与新规则集不匹配的去抖/恢复计数器，避免脏状态残留误触发
+        self._counters = {
+            k: c for k, c in self._counters.items()
+            if (k[1], k[2]) in enabled_pairs
+        }
+        self._recovery_counters = {
+            k: c for k, c in self._recovery_counters.items()
+            if (k[2], k[3]) in enabled_pairs
+        }
 
     def evaluate(self, snapshot: ServerSnapshot, server_name: str = ""):
         """评估快照数据，触发告警"""
@@ -86,9 +133,31 @@ class AlertEngine:
                 self._recovery_counters[recovery_key] = rec_count
                 if rec_count >= rule.duration:
                     self._recovery_counters.pop(recovery_key, None)
-                    self._history.resolve_by_rule(
+                    resolved = self._history.resolve_by_rule(
                         snapshot.server_id, rule.metric, rule.level
                     )
+                    for rec in resolved:
+                        self._notifier.send_resolved(rec)
+                        logger.info("ALERT RESOLVED: %s", rec.message)
+
+    def resolve_server_alerts(self, server_id: str):
+        """服务器离线/移除时，将其活跃告警标记为已恢复并通知 UI。
+
+        返回被恢复的告警记录列表。
+        """
+        resolved = self._history.resolve_all_for_server(server_id)
+        for rec in resolved:
+            self._notifier.send_resolved(rec)
+            logger.info("ALERT RESOLVED (offline): %s", rec.message)
+        # 同时清理未完成的去抖/恢复计数，避免恢复后误触发
+        self._counters = {
+            k: c for k, c in self._counters.items() if k[0] != server_id
+        }
+        self._recovery_counters = {
+            k: c for k, c in self._recovery_counters.items()
+            if k[1] != server_id
+        }
+        return resolved
 
     def _get_metric_value(self, snapshot: ServerSnapshot, metric: str):
         """从快照中提取指标值"""
@@ -110,7 +179,14 @@ class AlertEngine:
             if (existing.server_id == snapshot.server_id and
                     existing.metric == rule.metric and
                     existing.level.value == rule.level):
-                return  # 已有活跃告警，不重复触发
+                return  # 已有同级别活跃告警，不重复触发
+            # 优化：同一指标已有更高级别（critical）告警活跃时，
+            # 不再触发低级别（warning）告警，避免重复刷屏
+            if (existing.server_id == snapshot.server_id and
+                    existing.metric == rule.metric and
+                    existing.level == AlertLevel.CRITICAL and
+                    rule.level == "warning"):
+                return
 
         alert = AlertRecord(
             id=str(uuid.uuid4())[:8],

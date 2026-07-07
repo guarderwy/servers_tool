@@ -16,9 +16,14 @@ class UINotifier(QObject):
     """界面通知（弹窗 + 面板）"""
 
     alert_triggered = pyqtSignal(object)  # AlertRecord
+    alert_resolved = pyqtSignal(object)   # AlertRecord（已恢复的告警）
 
     def send(self, alert: AlertRecord) -> bool:
         self.alert_triggered.emit(alert)
+        return True
+
+    def send_resolved(self, alert: AlertRecord) -> bool:
+        self.alert_resolved.emit(alert)
         return True
 
 

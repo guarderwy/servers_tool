@@ -12,6 +12,7 @@ from .monitor_tab import MonitorTab
 from .analysis_tab import AnalysisTab
 from .settings_tab import SettingsTab
 from .widgets.alert_panel import AlertPanel
+from .widgets.marquee_bar import MarqueeBar
 from .widgets.login_dialog import LoginDialog
 from ..core.state_manager import StateManager
 from ..core.collector import CollectorScheduler
@@ -82,19 +83,20 @@ class MainWindow(QMainWindow):
         self._tabs.addTab(self._dashboard, "仪表盘")
         self._tabs.addTab(self._monitor, "实时监控")
         self._tabs.addTab(self._analysis, "分析")
+        # 告警面板独立成 Tab，置于「设置」之前
+        self._alert_panel = AlertPanel()
+        self._tabs.insertTab(3, self._alert_panel, "告警")
         self._tabs.addTab(self._settings, "设置")
 
-        # 告警面板（底部抽屉）
-        self._alert_panel = AlertPanel()
-        self._alert_panel.setMaximumHeight(200)
-        self._alert_panel.setVisible(False)
+        # 顶部滚动告警栏（位于工具栏下方、Tab 上方），只滚动活跃告警
+        self._marquee = MarqueeBar()
 
         # 中央布局
         central = QWidget()
         central_layout = QVBoxLayout(central)
         central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.addWidget(self._marquee)
         central_layout.addWidget(self._tabs, 1)
-        central_layout.addWidget(self._alert_panel)
 
         self.setCentralWidget(central)
 
@@ -119,6 +121,7 @@ class MainWindow(QMainWindow):
 
         # 告警
         self._alert_engine.notifier.alert_triggered.connect(self._on_alert)
+        self._alert_engine.notifier.alert_resolved.connect(self._on_alert_resolved)
 
         # 设置变更
         self._settings.servers_changed.connect(self._on_servers_changed)
@@ -215,18 +218,30 @@ class MainWindow(QMainWindow):
         self._update_status_bar()
 
     def _on_offline(self, server_id: str):
+        # 服务器离线时，将其活跃告警标记为已恢复并刷新面板
+        self._alert_engine.resolve_server_alerts(server_id)
+        self._sync_alert_panel()
         self._update_status_bar()
 
     def _on_alert(self, alert):
-        """处理告警"""
-        self._alert_panel.add_alert(alert)
-        self._alert_panel.setVisible(True)
+        """处理新告警：刷新面板并弹出提示"""
+        self._sync_alert_panel()
 
         # 弹窗提示
         level_text = "警告" if alert.level.value == "warning" else "严重"
         self._status_bar.showMessage(
             f"[{level_text}] {alert.message}", 5000
         )
+
+    def _on_alert_resolved(self, alert):
+        """处理告警恢复：刷新面板状态（已恢复 -> 绿色）"""
+        self._sync_alert_panel()
+
+    def _sync_alert_panel(self):
+        """以历史记录为唯一数据源刷新告警面板与顶部滚动栏，保证状态与实际一致"""
+        alerts = self._alert_engine.history.get_all()
+        self._alert_panel.update_alerts(alerts)
+        self._marquee.set_alerts(alerts)
 
     def _on_servers_changed(self):
         """服务器列表变更"""
@@ -308,6 +323,9 @@ class MainWindow(QMainWindow):
 
         clear_all_styles(self)
 
+        # 重新应用仪表盘卡片和标签的主题样式（clear_all_styles 清空了它们）
+        self._dashboard.apply_theme(theme)
+
         # pyqtgraph 图表背景需要单独设置（它不走 QSS）
         bg_color = "#1e1e2e" if theme == "dark" else "#f5f5f5"
         fg_color = "#cccccc" if theme == "dark" else "#333333"
@@ -322,9 +340,6 @@ class MainWindow(QMainWindow):
                 axis = chart._plot_widget.getAxis(axis_name)
                 axis.setPen(fg_color)
                 axis.setTextPen(fg_color)
-
-        # 更新仪表盘中的卡片进度条样式（重置为标准颜色）
-        # 这些会在下次数据更新时自动重新着色
 
         # 强制刷新样式
         QApplication.instance().processEvents()

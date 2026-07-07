@@ -197,6 +197,32 @@ QMessageBox {
     background-color: #2a2a3a;
 }
 
+/* 表格 */
+QTableWidget, QTreeWidget {
+    background-color: #1e1e2e;
+    color: #cccccc;
+    alternate-background-color: #252535;
+    gridline-color: #3a3a4a;
+    selection-background-color: #3a3a6a;
+}
+QTableView::item, QTreeWidget::item {
+    padding: 4px;
+}
+QTableView::item:selected, QTreeWidget::item:selected {
+    background-color: #3a3a6a;
+    color: #ffffff;
+}
+QHeaderView::section {
+    background-color: #2a2a3a;
+    color: #cccccc;
+    padding: 6px;
+    border: 1px solid #3a3a4a;
+    font-weight: bold;
+}
+QHeaderView::section:hover {
+    background-color: #3a3a5a;
+}
+
 /* 分割线 */
 QSplitter::handle {
     background-color: #3a3a4a;

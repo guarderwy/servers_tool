@@ -108,12 +108,20 @@ class NetworkInterface:
 
 
 @dataclass
+class IPConnectionCount:
+    """单个来源 IP 的连接数统计（用于排查恶意连接 / 攻击）"""
+    ip: str
+    count: int
+
+
+@dataclass
 class NetworkMetric:
     """网络指标"""
     timestamp: datetime
     interfaces: list = field(default_factory=list)
     tcp_total: int = 0
     tcp_established: int = 0
+    top_ips: list = field(default_factory=list)  # list[IPConnectionCount]，按连接数降序
     rx_rate: float = 0.0  # 下载速率 bytes/sec（由 StateManager 计算）
     tx_rate: float = 0.0  # 上传速率 bytes/sec（由 StateManager 计算）
 
@@ -143,6 +151,15 @@ class AuthLogEntry:
 
 
 @dataclass
+class ServerStaticInfo:
+    """服务器静态配置信息（首次采集，不频繁变更）"""
+    cpu_cores: int = 0
+    mem_total_mb: int = 0
+    os_name: str = ""
+    kernel: str = ""
+
+
+@dataclass
 class ServerSnapshot:
     """服务器快照 —— 一次完整的采集结果"""
     server_id: str
@@ -154,6 +171,7 @@ class ServerSnapshot:
     network: Optional[NetworkMetric] = None
     top_cpu_procs: list = field(default_factory=list)
     top_mem_procs: list = field(default_factory=list)
+    static_info: Optional[ServerStaticInfo] = None
 
 
 @dataclass

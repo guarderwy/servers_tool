@@ -31,13 +31,27 @@ class AlertHistory:
                 r.resolved_at = now
 
     def resolve_by_rule(self, server_id: str, metric: str, level: str):
-        """按规则（含级别）标记活跃告警为已恢复"""
+        """按规则（含级别）标记活跃告警为已恢复，返回被恢复的告警列表"""
         now = datetime.now()
+        resolved = []
         for r in self._records:
             if (r.server_id == server_id and r.metric == metric
                     and r.level.value == level and not r.is_resolved):
                 r.is_resolved = True
                 r.resolved_at = now
+                resolved.append(r)
+        return resolved
+
+    def resolve_all_for_server(self, server_id: str):
+        """标记指定服务器的全部活跃告警为已恢复，返回被恢复的告警列表"""
+        now = datetime.now()
+        resolved = []
+        for r in self._records:
+            if r.server_id == server_id and not r.is_resolved:
+                r.is_resolved = True
+                r.resolved_at = now
+                resolved.append(r)
+        return resolved
 
     def clear_resolved(self):
         self._records = [r for r in self._records if not r.is_resolved]

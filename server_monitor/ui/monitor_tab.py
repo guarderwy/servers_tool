@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from .widgets.server_list_table import ServerListTable
 from .widgets.metric_chart import MetricChart
 from .widgets.metric_gauge import MetricGauge
+from .widgets.conn_ip_table import ConnIPTable
 from ..core.state_manager import StateManager
 from ..core.models import ServerSnapshot, ServerStatus
 from ..utils.humanize import humanize_bytes_per_sec, humanize_mb
@@ -120,6 +121,14 @@ class MonitorTab(QWidget):
             info_layout.addWidget(lbl)
         self._monitor_layout.addWidget(info_group)
 
+        # 连接来源 TOP5（防攻击排查）
+        conn_group = QGroupBox("连接来源 TOP5（防攻击排查）")
+        conn_group.setStyleSheet(info_group.styleSheet())
+        conn_layout = QVBoxLayout(conn_group)
+        self._conn_table = ConnIPTable(top_n=5)
+        conn_layout.addWidget(self._conn_table)
+        self._monitor_layout.addWidget(conn_group)
+
         self._monitor_layout.addStretch()
         right_scroll.setWidget(self._monitor_panel)
 
@@ -141,6 +150,7 @@ class MonitorTab(QWidget):
         self._mem_chart.clear()
         self._disk_chart.clear()
         self._net_chart.clear()
+        self._conn_table.update_data([])
         self.server_selected.emit(server_id)
 
     def update_snapshot(self, snapshot: ServerSnapshot):
@@ -201,6 +211,9 @@ class MonitorTab(QWidget):
                 f"TCP 连接: 总计 {snapshot.network.tcp_total} | "
                 f"已建立 {snapshot.network.tcp_established}"
             )
+
+            # 连接来源 TOP5
+            self._conn_table.update_data(snapshot.network.top_ips)
 
     def refresh_list(self):
         self._server_list.refresh()

@@ -65,6 +65,10 @@ class AlertPanel(QWidget):
     def _render(self):
         active = sum(1 for a in self._alerts if not a.is_resolved)
         self._count_label.setText(f"活跃告警: {active}")
+        if active > 0:
+            self._count_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
+        else:
+            self._count_label.setStyleSheet("color: #2ecc71; font-weight: bold;")
 
         self._table.setRowCount(len(self._alerts))
         for i, alert in enumerate(self._alerts):

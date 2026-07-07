@@ -5,7 +5,7 @@ from datetime import datetime
 
 from PyQt5.QtCore import QObject, QThread, QThreadPool, QRunnable, pyqtSignal
 
-from .models import ServerConfig, ServerSnapshot, ServerStatus
+from .models import ServerConfig, ServerSnapshot, ServerStatus, ServerStaticInfo
 from .parser import CommandParser
 from .state_manager import StateManager
 from ..ssh.connection_pool import SSHConnectionPool
@@ -13,8 +13,9 @@ from ..ssh.executor import SSHExecutor
 from ..commands.cpu_cmds import CMD_CPU_USAGE, CMD_LOAD_AVG, CMD_CPU_PER_CORE
 from ..commands.mem_cmds import CMD_MEM_INFO
 from ..commands.disk_cmds import CMD_DISK_USAGE
-from ..commands.net_cmds import CMD_NET_DEV, CMD_NET_TCP_STATS
+from ..commands.net_cmds import CMD_NET_DEV, CMD_NET_TCP_STATS, CMD_NET_CONN_IPS
 from ..commands.process_cmds import CMD_TOP_CPU_PROCS, CMD_TOP_MEM_PROCS
+from ..commands.static_cmds import CMD_SERVER_INFO
 from ..config import DEFAULT_POLL_INTERVAL, SSH_RETRY_COUNT
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class CollectorWorker(QRunnable):
         self.signals = signals
         self.interval = interval
         self._running = True
+        self._static_info = None
         self.setAutoDelete(False)
 
     def stop(self):
@@ -69,10 +71,19 @@ class CollectorWorker(QRunnable):
         """执行一次完整采集"""
         server_id = self.config.id
 
+        # 静态配置只在首次采集时执行一次
+        if self._static_info is None:
+            try:
+                out = self.executor.exec_command(self.config, CMD_SERVER_INFO)
+                self._static_info = self.parser.parse_static_info(out)
+            except Exception as e:
+                logger.warning("Failed to collect static info for %s: %s", self.config.name, e)
+                self._static_info = ServerStaticInfo()
+
         # 执行所有采集命令
         commands = [
             CMD_CPU_USAGE, CMD_LOAD_AVG, CMD_MEM_INFO,
-            CMD_DISK_USAGE, CMD_NET_DEV, CMD_NET_TCP_STATS,
+            CMD_DISK_USAGE, CMD_NET_DEV, CMD_NET_TCP_STATS, CMD_NET_CONN_IPS,
         ]
         results = self.executor.exec_commands(self.config, commands)
 
@@ -92,6 +103,10 @@ class CollectorWorker(QRunnable):
         net_metric = self.parser.parse_network(
             results.get(CMD_NET_DEV, ""),
             results.get(CMD_NET_TCP_STATS, ""),
+        )
+        # 按来源 IP 统计连接数（排查恶意连接）
+        net_metric.top_ips = self.parser.parse_connection_ips(
+            results.get(CMD_NET_CONN_IPS, "")
         )
 
         # 确定服务器状态
@@ -113,6 +128,7 @@ class CollectorWorker(QRunnable):
             memory=mem_metric,
             disk=disk_metric,
             network=net_metric,
+            static_info=self._static_info,
         )
 
     def collect_processes(self):

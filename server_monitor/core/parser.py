@@ -7,7 +7,8 @@ from typing import Optional
 
 from .models import (
     CPUMetric, MemoryMetric, DiskMetric, DiskPartition,
-    NetworkMetric, NetworkInterface, ProcessInfo, AuthLogEntry,
+    NetworkMetric, NetworkInterface, IPConnectionCount,
+    ProcessInfo, AuthLogEntry, ServerStaticInfo,
 )
 from ..config import DISK_IGNORE_FS, NETWORK_IGNORE_IFACES
 
@@ -227,6 +228,52 @@ class CommandParser:
             tcp_established=tcp_established,
         )
 
+    def parse_connection_ips(self, output: str, top_n: int = 10) -> list[IPConnectionCount]:
+        """解析 ss -tn / netstat -tn 输出，按来源（对端）IP 统计连接数。
+
+        忽略监听套接字（LISTEN）与通配地址（*），排除本机回环，
+        用于排查单个 IP 大量连接（疑似恶意攻击 / 扫描）的情况。
+        """
+        counts: dict[str, int] = {}
+        for line in output.strip().splitlines():
+            fields = line.split()
+            if len(fields) < 4:
+                continue
+            # 跳过表头
+            if fields[0] in ("State", "Proto", "Active", "Total"):
+                continue
+            # 跳过监听套接字（无具体对端 IP）
+            if "LISTEN" in fields:
+                continue
+            peer = fields[-1]  # 对端地址:端口
+            ip = self._extract_ip(peer)
+            if not ip or ip in ("127.0.0.1", "::1", "*", "0.0.0.0", "::"):
+                continue
+            counts[ip] = counts.get(ip, 0) + 1
+
+        ordered = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+        return [
+            IPConnectionCount(ip=ip, count=cnt)
+            for ip, cnt in ordered[:top_n]
+        ]
+
+    @staticmethod
+    def _extract_ip(addr_port: str) -> str:
+        """从 '1.2.3.4:54321' 或 '[2001:db8::1]:54432' 中提取 IP 部分。"""
+        token = addr_port.strip()
+        if not token or token == "*":
+            return ""
+        if token.startswith("["):
+            # IPv6 带方括号： [2001:db8::1]:54432
+            end = token.find("]:")
+            if end != -1:
+                return token[1:end]
+            return token.strip("[]")
+        # IPv4 或 不带方括号的 IPv6：端口在最后一个冒号之后
+        if ":" in token:
+            return token.rsplit(":", 1)[0]
+        return token
+
     # ========== 进程 ==========
 
     def parse_processes(self, output: str) -> list[ProcessInfo]:
@@ -305,3 +352,26 @@ class CommandParser:
             )
         except (ValueError, IndexError):
             return now
+
+    # ========== 静态配置 ==========
+
+    def parse_static_info(self, output: str) -> ServerStaticInfo:
+        """解析服务器静态配置信息"""
+        info = ServerStaticInfo()
+        for line in output.strip().splitlines():
+            line = line.strip()
+            if line.startswith("cores="):
+                try:
+                    info.cpu_cores = int(line.split("=", 1)[1])
+                except ValueError:
+                    pass
+            elif line.startswith("mem="):
+                try:
+                    info.mem_total_mb = int(line.split("=", 1)[1]) // 1024
+                except ValueError:
+                    pass
+            elif line.startswith("os="):
+                info.os_name = line.split("=", 1)[1].strip('"')
+            elif line.startswith("kernel="):
+                info.kernel = line.split("=", 1)[1]
+        return info

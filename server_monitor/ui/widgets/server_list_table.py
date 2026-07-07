@@ -49,6 +49,7 @@ class ServerListModel(QAbstractTableModel):
         ("status",     "状态",     60),
         ("name",       "主机名",   120),
         ("ip",         "IP 地址",  130),
+        ("spec",       "规格",     130),
         ("cpu_pct",    "CPU %",    100),
         ("mem_pct",    "内存 %",   100),
         ("disk_pct",   "磁盘 %",   100),
@@ -59,8 +60,8 @@ class ServerListModel(QAbstractTableModel):
         ("monitor",    "监控",     70),
     ]
 
-    PERCENT_COLS = {3, 4, 5}  # cpu_pct, mem_pct, disk_pct 列索引
-    MONITOR_COL = 10
+    PERCENT_COLS = {4, 5, 6}  # cpu_pct, mem_pct, disk_pct
+    MONITOR_COL = 11
 
     def __init__(self, state_manager: StateManager, parent=None):
         super().__init__(parent)
@@ -97,6 +98,7 @@ class ServerListModel(QAbstractTableModel):
                 "status": snap.status,
                 "name": cfg.name,
                 "ip": cfg.host,
+                "spec": snap.static_info,
                 "cpu_pct": cpu_pct,
                 "mem_pct": mem_pct,
                 "disk_pct": disk_pct,
@@ -175,6 +177,15 @@ class ServerListModel(QAbstractTableModel):
             return row["name"]
         elif key == "ip":
             return row["ip"]
+        elif key == "spec":
+            si = row["spec"]
+            if si and si.cpu_cores:
+                mem_gb = si.mem_total_mb / 1024 if si.mem_total_mb else 0
+                spec = f"{si.cpu_cores}vCPU"
+                if mem_gb > 0:
+                    spec += f" {mem_gb:.0f}GB"
+                return spec
+            return "--"
         elif key == "cpu_pct":
             v = row["cpu_pct"]
             return f"{v:.1f}%" if v is not None else "--"
@@ -198,6 +209,11 @@ class ServerListModel(QAbstractTableModel):
         return ""
 
     def _raw_value(self, row: dict, key: str):
+        if key == "spec":
+            si = row.get("spec")
+            if si and si.cpu_cores:
+                return si.cpu_cores
+            return 0
         val = row.get(key)
         if val is None:
             return -1  # 用于排序
