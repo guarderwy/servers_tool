@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from collections import deque
 from datetime import datetime
 
-from ...config import CHART_MAX_POINTS
+from ...config import CHART_MAX_POINTS, THRESHOLD_WARNING, THRESHOLD_CRITICAL
 
 
 class TimeAxisItem(pg.AxisItem):
@@ -101,11 +101,11 @@ class MetricChart(QWidget):
             latest = self._series[name][-1][1]
             self._value_label.setText(f"{latest:.1f}")
             # 根据值变色
-            if latest >= 90:
+            if latest >= THRESHOLD_CRITICAL:
                 self._value_label.setStyleSheet(
                     "font-size: 16px; font-weight: bold; color: #e74c3c;"
                 )
-            elif latest >= 80:
+            elif latest >= THRESHOLD_WARNING:
                 self._value_label.setStyleSheet(
                     "font-size: 16px; font-weight: bold; color: #f39c12;"
                 )

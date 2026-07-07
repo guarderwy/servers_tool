@@ -45,13 +45,6 @@ class AlertPanel(QWidget):
         self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._table.setAlternatingRowColors(True)
-        self._table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         layout.addWidget(self._table)
 
     def add_alert(self, alert: AlertRecord):
@@ -79,7 +72,7 @@ class AlertPanel(QWidget):
 
             metric_item = QTableWidgetItem(alert.metric.upper())
             if alert.level == AlertLevel.CRITICAL:
-                metric_item.setForeground(Qt.red)
+                metric_item.setForeground(QColor("#e74c3c"))
             else:
                 metric_item.setForeground(QColor("#f39c12"))
             self._table.setItem(i, 2, metric_item)
@@ -90,9 +83,9 @@ class AlertPanel(QWidget):
             status_text = "已恢复" if alert.is_resolved else "活跃"
             status_item = QTableWidgetItem(status_text)
             if alert.is_resolved:
-                status_item.setForeground(Qt.green)
+                status_item.setForeground(QColor("#2ecc71"))
             else:
-                status_item.setForeground(Qt.red)
+                status_item.setForeground(QColor("#e74c3c"))
             self._table.setItem(i, 5, status_item)
 
     def _clear_resolved(self):

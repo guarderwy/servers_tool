@@ -106,23 +106,6 @@ class AnalysisTab(QWidget):
 
         # 子页面 Tab
         self._sub_tabs = QTabWidget()
-        self._sub_tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #3a3a4a;
-                background: #1e1e2e;
-            }
-            QTabBar::tab {
-                background: #2a2a3a;
-                color: #cccccc;
-                padding: 8px 16px;
-                border: 1px solid #3a3a4a;
-            }
-            QTabBar::tab:selected {
-                background: #3a3a5a;
-                border-bottom: 2px solid #3498db;
-            }
-        """)
-
         # 子页面 1: 磁盘空间分析
         self._disk_widget = DiskTreeWidget()
         self._disk_widget.connect_scan(self.scan_dir)
@@ -164,13 +147,6 @@ class AnalysisTab(QWidget):
         self._proc_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._proc_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._proc_table.setAlternatingRowColors(True)
-        self._proc_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         layout.addWidget(self._proc_table)
 
         self._cpu_procs = []

@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         self._tabs = QTabWidget()
 
         self._dashboard = DashboardTab(self._state, scheduler=self._scheduler)
-        self._monitor = MonitorTab(self._state)
+        self._monitor = MonitorTab(self._state, scheduler=self._scheduler)
         self._analysis = AnalysisTab(self._state, self._scheduler)
         self._settings = SettingsTab(
             self._state, self._cred, self._alert_engine
@@ -133,6 +133,9 @@ class MainWindow(QMainWindow):
 
         # 仪表盘卡片监控切换
         self._dashboard.monitoring_state_changed.connect(self._on_monitor_state_changed)
+
+        # 实时监控 Tab 列表监控切换
+        self._monitor.monitoring_state_changed.connect(self._on_monitor_state_changed)
 
     def start(self):
         """启动应用（显示登录对话框）"""
@@ -258,9 +261,12 @@ class MainWindow(QMainWindow):
         pass  # 可扩展：加载进程列表等
 
     def _on_monitor_state_changed(self):
-        """仪表盘卡片监控切换导致状态变更"""
+        """监控状态变更后的同步更新"""
         self._update_monitor_state()
         self._update_status_bar()
+        # 同步刷新所有视图的监控状态显示
+        self._dashboard.get_list_table().refresh()
+        self._monitor.refresh_list()
 
     def _periodic_refresh(self):
         """定时刷新 UI"""
@@ -295,8 +301,7 @@ class MainWindow(QMainWindow):
 
     def _apply_theme(self, theme: str):
         """切换主题样式"""
-        from PyQt5.QtWidgets import QApplication, QWidget
-        from PyQt5.QtGui import QColor
+        from PyQt5.QtWidgets import QApplication
         import os
 
         styles_dir = os.path.join(
@@ -315,16 +320,16 @@ class MainWindow(QMainWindow):
         # 应用全局样式
         QApplication.instance().setStyleSheet(stylesheet)
 
-        # 递归清除所有子控件的内联样式，让全局 QSS 生效
-        def clear_all_styles(widget):
-            widget.setStyleSheet("")
-            for child in widget.findChildren(QWidget):
-                child.setStyleSheet("")
-
-        clear_all_styles(self)
-
-        # 重新应用仪表盘卡片和标签的主题样式（clear_all_styles 清空了它们）
+        # 重新应用仪表盘卡片和标签的主题样式
         self._dashboard.apply_theme(theme)
+
+        # 跑马灯栏主题
+        self._marquee.set_theme(theme)
+
+        # 监控 Tab 中的仪表盘（环状进度条）主题
+        self._monitor._cpu_gauge.set_theme(theme)
+        self._monitor._mem_gauge.set_theme(theme)
+        self._monitor._disk_gauge.set_theme(theme)
 
         # pyqtgraph 图表背景需要单独设置（它不走 QSS）
         bg_color = "#1e1e2e" if theme == "dark" else "#f5f5f5"

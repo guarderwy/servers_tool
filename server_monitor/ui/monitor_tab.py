@@ -20,10 +20,12 @@ class MonitorTab(QWidget):
     """实时监控 Tab"""
 
     server_selected = pyqtSignal(str)  # server_id
+    monitoring_state_changed = pyqtSignal()
 
-    def __init__(self, state_manager: StateManager, parent=None):
+    def __init__(self, state_manager: StateManager, scheduler=None, parent=None):
         super().__init__(parent)
         self._state = state_manager
+        self._scheduler = scheduler
         self._selected_server = ""
         self._setup_ui()
 
@@ -33,11 +35,12 @@ class MonitorTab(QWidget):
         # 左侧：服务器列表
         left = QVBoxLayout()
         left_label = QLabel("<b>服务器列表</b>")
-        left_label.setStyleSheet("color: #ffffff;")
         left.addWidget(left_label)
 
-        self._server_list = ServerListTable(state_manager=self._state)
+        self._server_list = ServerListTable(state_manager=self._state,
+                                            scheduler=self._scheduler)
         self._server_list.server_selected.connect(self._on_server_selected)
+        self._server_list.monitor_toggled.connect(self._on_monitor_toggled)
         left.addWidget(self._server_list, 1)
 
         left_widget = QWidget()
@@ -47,15 +50,13 @@ class MonitorTab(QWidget):
         # 右侧：监控面板
         right_scroll = QScrollArea()
         right_scroll.setWidgetResizable(True)
-        right_scroll.setStyleSheet("QScrollArea { border: none; }")
-
         self._monitor_panel = QWidget()
         self._monitor_layout = QVBoxLayout(self._monitor_panel)
         self._monitor_layout.setSpacing(8)
 
         # 服务器标题
         self._server_title = QLabel("请选择一台服务器")
-        self._server_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffffff;")
+        self._server_title.setStyleSheet("font-size: 18px; font-weight: bold;")
         self._monitor_layout.addWidget(self._server_title)
 
         # 仪表盘行
@@ -94,19 +95,6 @@ class MonitorTab(QWidget):
 
         # 信息面板
         info_group = QGroupBox("详细信息")
-        info_group.setStyleSheet("""
-            QGroupBox {
-                color: #cccccc;
-                border: 1px solid #3a3a4a;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 16px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-            }
-        """)
         info_layout = QVBoxLayout(info_group)
         self._info_labels = {}
         for key, label_text in [
@@ -116,14 +104,13 @@ class MonitorTab(QWidget):
             ("disk_detail", "磁盘分区"),
         ]:
             lbl = QLabel(f"{label_text}: --")
-            lbl.setStyleSheet("color: #aaa; font-size: 12px;")
+            lbl.setStyleSheet("font-size: 12px;")
             self._info_labels[key] = lbl
             info_layout.addWidget(lbl)
         self._monitor_layout.addWidget(info_group)
 
         # 连接来源 TOP5（防攻击排查）
         conn_group = QGroupBox("连接来源 TOP5（防攻击排查）")
-        conn_group.setStyleSheet(info_group.styleSheet())
         conn_layout = QVBoxLayout(conn_group)
         self._conn_table = ConnIPTable(top_n=5)
         conn_layout.addWidget(self._conn_table)
@@ -152,6 +139,10 @@ class MonitorTab(QWidget):
         self._net_chart.clear()
         self._conn_table.update_data([])
         self.server_selected.emit(server_id)
+
+    def _on_monitor_toggled(self, server_id: str, start: bool):
+        """列表中监控列切换后，通知 MainWindow 同步 UI"""
+        self.monitoring_state_changed.emit()
 
     def update_snapshot(self, snapshot: ServerSnapshot):
         """更新快照数据到图表"""

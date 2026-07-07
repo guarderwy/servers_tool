@@ -33,20 +33,6 @@ class ConnIPTable(QWidget):
         self._table.setSelectionBehavior(QTableWidget.SelectRows)
         self._table.setAlternatingRowColors(True)
         self._table.setShowGrid(False)
-        self._table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-                gridline-color: #3a3a4a;
-            }
-            QHeaderView::section {
-                background-color: #2a2a3a;
-                color: #aaaaaa;
-                border: none;
-                padding: 4px;
-            }
-        """)
         self._table.setMaximumHeight(190)
         layout.addWidget(self._table)
 

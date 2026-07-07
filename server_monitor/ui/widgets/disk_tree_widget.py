@@ -63,13 +63,6 @@ class DiskTreeWidget(QWidget):
         self._tree.setColumnWidth(0, 300)
         self._tree.setAlternatingRowColors(True)
         self._tree.itemDoubleClicked.connect(self._on_tree_double_clicked)
-        self._tree.setStyleSheet("""
-            QTreeWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         left.addWidget(self._tree)
         content.addLayout(left, 1)
 
@@ -84,13 +77,6 @@ class DiskTreeWidget(QWidget):
         self._file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._file_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._file_table.setAlternatingRowColors(True)
-        self._file_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         right.addWidget(self._file_table)
         content.addLayout(right, 1)
 

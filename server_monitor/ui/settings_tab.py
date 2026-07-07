@@ -32,22 +32,8 @@ class ServerEditDialog(QDialog):
         self.setWindowTitle("编辑服务器" if self._server else "添加服务器")
         self.setMinimumWidth(400)
         self.setStyleSheet("""
-            QDialog { background-color: #2a2a3a; }
-            QLabel { color: #cccccc; }
-            QLineEdit, QSpinBox {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                border: 1px solid #3a3a4a;
-                border-radius: 4px;
-                padding: 6px;
-            }
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-            }
+        QDialog { min-width: 400px; }
+        QLineEdit, QSpinBox { padding: 6px; }
         """)
 
         layout = QFormLayout(self)
@@ -174,22 +160,6 @@ class SettingsTab(QWidget):
         layout = QVBoxLayout(self)
 
         self._tabs = QTabWidget()
-        self._tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #3a3a4a;
-                background: #1e1e2e;
-            }
-            QTabBar::tab {
-                background: #2a2a3a;
-                color: #cccccc;
-                padding: 8px 16px;
-                border: 1px solid #3a3a4a;
-            }
-            QTabBar::tab:selected {
-                background: #3a3a5a;
-                border-bottom: 2px solid #3498db;
-            }
-        """)
 
         # 服务器管理
         self._tabs.addTab(self._create_server_tab(), "服务器管理")
@@ -233,13 +203,6 @@ class SettingsTab(QWidget):
         self._server_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._server_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._server_table.setAlternatingRowColors(True)
-        self._server_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         layout.addWidget(self._server_table)
 
         return widget
@@ -271,13 +234,6 @@ class SettingsTab(QWidget):
         ])
         self._alert_table.horizontalHeader().setStretchLastSection(True)
         self._alert_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._alert_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         layout.addWidget(self._alert_table)
 
         return widget

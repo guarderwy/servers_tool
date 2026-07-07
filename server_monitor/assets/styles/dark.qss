@@ -187,6 +187,38 @@ QToolTip {
     border-radius: 4px;
 }
 
+/* 表格 */
+QTableWidget, QTableView, QTreeWidget {
+    background-color: #1e1e2e;
+    color: #cccccc;
+    alternate-background-color: #252535;
+    gridline-color: #3a3a4a;
+    selection-background-color: #3a3a6a;
+    selection-color: #ffffff;
+    border: 1px solid #3a3a4a;
+}
+QTableWidget::item, QTableView::item, QTreeWidget::item {
+    padding: 4px 8px;
+}
+QTableWidget::item:selected, QTableView::item:selected, QTreeWidget::item:selected {
+    background-color: #3a3a6a;
+    color: #ffffff;
+}
+
+/* 表头 */
+QHeaderView::section {
+    background-color: #2a2a3a;
+    color: #cccccc;
+    padding: 6px;
+    border: none;
+    border-right: 1px solid #3a3a4a;
+    border-bottom: 1px solid #3a3a4a;
+    font-weight: bold;
+}
+QHeaderView::section:hover {
+    background-color: #3a3a5a;
+}
+
 /* 对话框 */
 QDialog {
     background-color: #2a2a3a;

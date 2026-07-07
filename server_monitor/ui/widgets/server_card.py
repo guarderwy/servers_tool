@@ -270,7 +270,7 @@ class ServerCard(QFrame):
 
         # 离线
         if snapshot.status == ServerStatus.OFFLINE:
-            self._status_dot.setStyleSheet("color: #7f8c8d;")
+            self._status_dot.setStyleSheet(f"color: {_BAR_CHUNK_COLORS['offline']};")
             self._set_offline()
             return
 
@@ -298,11 +298,11 @@ class ServerCard(QFrame):
         # 状态圆点
         max_pct = max(cpu_pct, mem_pct, disk_pct)
         if max_pct >= THRESHOLD_CRITICAL:
-            self._status_dot.setStyleSheet("color: #e74c3c;")
+            self._status_dot.setStyleSheet(f"color: {_BAR_CHUNK_COLORS['critical']};")
         elif max_pct >= THRESHOLD_WARNING:
-            self._status_dot.setStyleSheet("color: #f39c12;")
+            self._status_dot.setStyleSheet(f"color: {_BAR_CHUNK_COLORS['warning']};")
         else:
-            self._status_dot.setStyleSheet("color: #2ecc71;")
+            self._status_dot.setStyleSheet(f"color: {_BAR_CHUNK_COLORS['normal']};")
 
     def _update_bar(self, key: str, value: float):
         bar = getattr(self, f"_bar_{key}", None)

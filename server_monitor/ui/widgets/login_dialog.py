@@ -22,31 +22,8 @@ class LoginDialog(QDialog):
         self.setMinimumWidth(360)
         self.setModal(True)
         self.setStyleSheet("""
-            QDialog {
-                background-color: #2a2a3a;
-            }
-            QLabel {
-                color: #cccccc;
-            }
-            QLineEdit {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                border: 1px solid #3a3a4a;
-                border-radius: 4px;
-                padding: 8px;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 20px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
+            QLineEdit { padding: 8px; font-size: 14px; }
+            QPushButton { padding: 8px 20px; font-size: 13px; }
         """)
 
         layout = QVBoxLayout(self)
@@ -55,7 +32,7 @@ class LoginDialog(QDialog):
         # 标题
         title = QLabel("ServerMonitor")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #ffffff;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold;")
         layout.addWidget(title)
 
         if self._is_first_run:
@@ -94,7 +71,6 @@ class LoginDialog(QDialog):
         btn_row.addWidget(ok_btn)
 
         cancel_btn = QPushButton("取消")
-        cancel_btn.setStyleSheet("background-color: #555;")
         cancel_btn.clicked.connect(self.reject)
         btn_row.addWidget(cancel_btn)
         btn_row.addStretch()

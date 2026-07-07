@@ -6,6 +6,8 @@ from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QConicalGradient
 
 import math
 
+from ...config import THRESHOLD_WARNING, THRESHOLD_CRITICAL
+
 
 class MetricGauge(QWidget):
     """环形进度仪表盘"""
@@ -19,17 +21,22 @@ class MetricGauge(QWidget):
         self._min = min_value
         self._max = max_value
         self._value = 0
+        self._theme = "dark"
         self.setMinimumSize(120, 140)
         self.setMaximumSize(200, 220)
+
+    def set_theme(self, theme: str):
+        self._theme = theme
+        self.update()
 
     def set_value(self, value: float):
         self._value = max(self._min, min(self._max, value))
         self.update()
 
     def _get_color(self) -> QColor:
-        if self._value >= 90:
+        if self._value >= THRESHOLD_CRITICAL:
             return QColor("#e74c3c")
-        elif self._value >= 80:
+        elif self._value >= THRESHOLD_WARNING:
             return QColor("#f39c12")
         return QColor("#2ecc71")
 
@@ -42,9 +49,13 @@ class MetricGauge(QWidget):
         size = min(w, h - 30)
         margin = 10
 
+        # 主题颜色
+        ring_color = "#3a3a4a" if self._theme == "dark" else "#d0d0d0"
+        title_color = "#cccccc" if self._theme == "dark" else "#555555"
+
         # 绘制背景环
         rect = QRectF(margin, margin, size - 2 * margin, size - 2 * margin)
-        pen_bg = QPen(QColor("#3a3a4a"), 8)
+        pen_bg = QPen(QColor(ring_color), 8)
         pen_bg.setCapStyle(Qt.RoundCap)
         painter.setPen(pen_bg)
 
@@ -71,7 +82,7 @@ class MetricGauge(QWidget):
         painter.drawText(text_rect, Qt.AlignCenter, value_text)
 
         # 绘制标题
-        painter.setPen(QColor("#cccccc"))
+        painter.setPen(QColor(title_color))
         font2 = QFont()
         font2.setPointSize(10)
         painter.setFont(font2)

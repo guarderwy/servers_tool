@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QAbstractItemView,
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 
 from ...core.models import AuthLogEntry
 
@@ -59,13 +60,6 @@ class LogTableWidget(QWidget):
         self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._table.setAlternatingRowColors(True)
-        self._table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e2e;
-                color: #cccccc;
-                alternate-background-color: #252535;
-            }
-        """)
         layout.addWidget(self._table)
 
     def update_entries(self, entries: list[AuthLogEntry]):
@@ -105,9 +99,9 @@ class LogTableWidget(QWidget):
 
             event_item = QTableWidgetItem(event_text)
             if entry.event_type == "accepted":
-                event_item.setForeground(Qt.green)
+                event_item.setForeground(QColor("#2ecc71"))
             else:
-                event_item.setForeground(Qt.red)
+                event_item.setForeground(QColor("#e74c3c"))
             self._table.setItem(i, 1, event_item)
 
             self._table.setItem(i, 2, QTableWidgetItem(entry.user))

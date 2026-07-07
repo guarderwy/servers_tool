@@ -26,9 +26,6 @@ class MarqueeBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(32)
-        self.setStyleSheet(
-            "background-color: #2a2a3a; border-bottom: 1px solid #3a3a4a;"
-        )
 
         self._label = QLabel("", self)
         self._label.setWordWrap(False)
@@ -44,11 +41,24 @@ class MarqueeBar(QWidget):
         self._unit_w = 0                 # 单份内容 + 间隔的像素宽度（循环周期）
         self._parts = []                 # 去重后的活跃告警文本片段（非空即表示有活跃告警）
         self._has_critical = False
+        self._theme = "dark"
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
 
+        self._apply_theme_style()
         self.set_alerts([])  # 初始占位
+
+    def _apply_theme_style(self):
+        bg = "#2a2a3a" if self._theme == "dark" else "#e8e8e8"
+        border = "#3a3a4a" if self._theme == "dark" else "#d0d0d0"
+        self.setStyleSheet(
+            f"background-color: {bg}; border-bottom: 1px solid {border};"
+        )
+
+    def set_theme(self, theme: str):
+        self._theme = theme
+        self._apply_theme_style()
 
     def set_alerts(self, alerts: list[AlertRecord]):
         """根据告警列表刷新滚动内容（只取活跃告警，且相同预警去重）"""

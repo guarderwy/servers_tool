@@ -27,9 +27,9 @@ def get_color_level(value) -> str:
     """根据值返回颜色级别"""
     if value is None:
         return "offline"
-    if value >= 90:
+    if value >= THRESHOLD_CRITICAL:
         return "critical"
-    if value >= 80:
+    if value >= THRESHOLD_WARNING:
         return "warning"
     return "normal"
 
@@ -145,15 +145,15 @@ class ServerListModel(QAbstractTableModel):
             # 状态列的颜色：按状态显示不同颜色
             status = row["status"]
             sc = {
-                ServerStatus.ONLINE: "#2ecc71",
-                ServerStatus.OFFLINE: "#7f8c8d",
-                ServerStatus.WARNING: "#f39c12",
-                ServerStatus.CRITICAL: "#e74c3c",
+                ServerStatus.ONLINE: COLOR_NORMAL_BAR,
+                ServerStatus.OFFLINE: COLOR_OFFLINE_BAR,
+                ServerStatus.WARNING: COLOR_WARNING_BAR,
+                ServerStatus.CRITICAL: COLOR_CRITICAL_BAR,
             }
-            return QBrush(QColor(sc.get(status, "#7f8c8d")))
+            return QBrush(QColor(sc.get(status, COLOR_OFFLINE_BAR)))
         elif role == Qt.ForegroundRole and index.column() == self.MONITOR_COL:
             monitoring = row.get("monitoring", False)
-            return QBrush(QColor("#2ecc71" if monitoring else "#7f8c8d"))
+            return QBrush(QColor(COLOR_NORMAL_BAR if monitoring else COLOR_OFFLINE_BAR))
         elif role == Qt.TextAlignmentRole:
             if index.column() >= 3:
                 return Qt.AlignCenter
@@ -315,22 +315,6 @@ class ServerListTable(QWidget):
         self._table.verticalHeader().setVisible(False)
         
         self._table.setShowGrid(False)
-        self._table.setStyleSheet("""
-            QTableView {
-                background-color: #1e1e2e;
-                alternate-background-color: #252535;
-                color: #cccccc;
-                gridline-color: #3a3a4a;
-                selection-background-color: #3a3a6a;
-            }
-            QHeaderView::section {
-                background-color: #2a2a3a;
-                color: #cccccc;
-                padding: 6px;
-                border: 1px solid #3a3a4a;
-                font-weight: bold;
-            }
-        """)
 
         # 设置列宽
         header = self._table.horizontalHeader()

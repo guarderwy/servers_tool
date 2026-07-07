@@ -173,6 +173,40 @@ class TestParserNetwork(unittest.TestCase):
         self.assertEqual(m.tcp_total, 50)
         self.assertEqual(m.tcp_established, 30)
 
+    def test_parse_connection_ips(self):
+        out = (
+            "State      Recv-Q Send-Q Local Address:Port               Peer Address:Port\n"
+            "ESTAB      0      0      10.0.0.1:22                      203.0.113.5:51012\n"
+            "ESTAB      0      0      10.0.0.1:22                      203.0.113.5:51013\n"
+            "SYN-RECV   0      0      10.0.0.1:22                      198.51.100.23:41234\n"
+            "ESTAB      0      0      10.0.0.1:22                      198.51.100.23:41235\n"
+            "ESTAB      0      0      10.0.0.1:22                      192.0.2.50:33000\n"
+            "ESTAB      0      0      10.0.0.1:3306                   192.0.2.50:33001\n"
+            "ESTAB      0      0      10.0.0.1:22                     [2001:db8::1]:54432\n"
+            "LISTEN     0      128    :::22                            :::*\n"
+            "ESTAB      0      0      127.0.0.1:6379                   127.0.0.1:55555\n"
+        )
+        conns = self.p.parse_connection_ips(out)
+        ips = [c.ip for c in conns]
+        self.assertIn("203.0.113.5", ips)
+        self.assertIn("198.51.100.23", ips)
+        self.assertIn("192.0.2.50", ips)
+        self.assertIn("2001:db8::1", ips)  # IPv6 带方括号解析
+        self.assertNotIn("127.0.0.1", ips)  # 回环排除
+        # 各来源连接数：IPv4 各 2 条，IPv6 仅 1 条
+        counts = {c.ip: c.count for c in conns}
+        self.assertEqual(counts["203.0.113.5"], 2)
+        self.assertEqual(counts["198.51.100.23"], 2)
+        self.assertEqual(counts["192.0.2.50"], 2)
+        self.assertEqual(counts["2001:db8::1"], 1)
+        # top_n 限制生效
+        self.assertEqual(len(self.p.parse_connection_ips(out, top_n=2)), 2)
+
+    def test_parse_connection_ips_empty(self):
+        self.assertEqual(self.p.parse_connection_ips(""), [])
+        # 仅监听/表头，无具体对端
+        self.assertEqual(self.p.parse_connection_ips("State Recv-Q foo\nLISTEN 0 0 :::22 :::*"), [])
+
 
 class TestParserProcess(unittest.TestCase):
     def setUp(self):
